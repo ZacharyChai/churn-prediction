@@ -42,6 +42,7 @@ Retaining a customer is significantly cheaper than acquiring a new one. A model 
 ## How to run
 
 pip install pandas numpy scikit-learn matplotlib seaborn
+
 python churn_analysis.py
 
 ## Potential next steps
