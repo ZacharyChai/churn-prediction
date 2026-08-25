@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: churn-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health

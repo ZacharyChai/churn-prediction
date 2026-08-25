@@ -1,0 +1,9 @@
+.venv-train
+.git
+Telco-Customer-Churn.csv
+eda.png
+results.png
+churn_analysis.py
+train_model.py
+__pycache__
+*.pyc

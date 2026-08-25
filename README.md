@@ -45,6 +45,43 @@ pip install pandas numpy scikit-learn matplotlib seaborn
 
 python churn_analysis.py
 
+## Serving the model
+
+The logistic regression model (feature engineering + scaling + classifier) is
+serialized as a single pipeline and served behind a FastAPI app.
+
+**Live endpoint:** `PLACEHOLDER_RENDER_URL`
+
+```bash
+curl -X POST PLACEHOLDER_RENDER_URL/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gender": "Female", "SeniorCitizen": 0, "Partner": "Yes", "Dependents": "No",
+    "tenure": 1, "PhoneService": "No", "MultipleLines": "No phone service",
+    "InternetService": "DSL", "OnlineSecurity": "No", "OnlineBackup": "Yes",
+    "DeviceProtection": "No", "TechSupport": "No", "StreamingTV": "No", "StreamingMovies": "No",
+    "Contract": "Month-to-month", "PaperlessBilling": "Yes", "PaymentMethod": "Electronic check",
+    "MonthlyCharges": 29.85, "TotalCharges": 29.85
+  }'
+# {"churn_probability": 0.827, "predicted_class": "Yes"}
+```
+
+`GET /health` returns `{"status": "ok"}`. Interactive API docs (Swagger UI) are
+available at `/docs` on the live endpoint.
+
+Note: the free Render tier spins the service down after 15 minutes of
+inactivity, so the first request after a period of idleness can take up to
+~50 seconds while it wakes up.
+
+### Running it yourself
+
+```bash
+python train_model.py        # trains the pipeline, writes model.joblib
+docker build -t churn-api .
+docker run -p 8000:8000 churn-api
+curl http://localhost:8000/health
+```
+
 ## Potential next steps
 
 - Tune the classification threshold based on the cost of false positives vs false negatives
