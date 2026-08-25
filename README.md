@@ -50,10 +50,10 @@ python churn_analysis.py
 The logistic regression model (feature engineering + scaling + classifier) is
 serialized as a single pipeline and served behind a FastAPI app.
 
-**Live endpoint:** `PLACEHOLDER_RENDER_URL`
+**Live endpoint:** `https://churn-prediction-8qvu.onrender.com`
 
 ```bash
-curl -X POST PLACEHOLDER_RENDER_URL/predict \
+curl -X POST https://churn-prediction-8qvu.onrender.com/predict \
   -H "Content-Type: application/json" \
   -d '{
     "gender": "Female", "SeniorCitizen": 0, "Partner": "Yes", "Dependents": "No",
