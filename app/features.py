@@ -4,6 +4,11 @@
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
+# Bump when the training pipeline or feature set changes. Baked into
+# model.joblib at train time and echoed back in every /predict response,
+# so a caller can tell which model version scored their request.
+MODEL_VERSION = "1.0.0"
+
 YES_NO_COLS = ["Partner", "Dependents", "PhoneService", "PaperlessBilling"]
 ADDON_COLS = [
     "MultipleLines", "OnlineSecurity", "OnlineBackup",

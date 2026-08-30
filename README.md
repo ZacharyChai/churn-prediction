@@ -1,6 +1,28 @@
 # Customer Churn Prediction
 
-Predicting which telecom customers are likely to cancel their service, using the [IBM Telco Churn dataset](https://www.kaggle.com/datasets/blastchar/telco-customer-churn) from Kaggle (7,043 customers, 20 features).
+Predicting which telecom customers are likely to cancel their service, using the [IBM Telco Churn dataset](https://www.kaggle.com/datasets/blastchar/telco-customer-churn) from Kaggle (7,043 customers, 20 features). The trained model is served live as a FastAPI endpoint, not just a notebook.
+
+## Live API
+
+**`https://churn-prediction-8qvu.onrender.com`** — interactive docs (Swagger UI) at the root URL.
+
+```bash
+curl -X POST https://churn-prediction-8qvu.onrender.com/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gender": "Female", "SeniorCitizen": 0, "Partner": "Yes", "Dependents": "No",
+    "tenure": 1, "PhoneService": "No", "MultipleLines": "No phone service",
+    "InternetService": "DSL", "OnlineSecurity": "No", "OnlineBackup": "Yes",
+    "DeviceProtection": "No", "TechSupport": "No", "StreamingTV": "No", "StreamingMovies": "No",
+    "Contract": "Month-to-month", "PaperlessBilling": "Yes", "PaymentMethod": "Electronic check",
+    "MonthlyCharges": 29.85, "TotalCharges": 29.85
+  }'
+# {"churn_probability": 0.827, "predicted_class": "Yes", "model_version": "1.0.0"}
+```
+
+Runs on Render's free tier, which spins down after 15 minutes of inactivity —
+**the first request after idle can take 30-60 seconds** while it wakes back
+up. That's expected, not an outage.
 
 ## Why this matters
 
@@ -48,30 +70,13 @@ python churn_analysis.py
 ## Serving the model
 
 The logistic regression model (feature engineering + scaling + classifier) is
-serialized as a single pipeline and served behind a FastAPI app.
-
-**Live endpoint:** `https://churn-prediction-8qvu.onrender.com`
-
-```bash
-curl -X POST https://churn-prediction-8qvu.onrender.com/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "gender": "Female", "SeniorCitizen": 0, "Partner": "Yes", "Dependents": "No",
-    "tenure": 1, "PhoneService": "No", "MultipleLines": "No phone service",
-    "InternetService": "DSL", "OnlineSecurity": "No", "OnlineBackup": "Yes",
-    "DeviceProtection": "No", "TechSupport": "No", "StreamingTV": "No", "StreamingMovies": "No",
-    "Contract": "Month-to-month", "PaperlessBilling": "Yes", "PaymentMethod": "Electronic check",
-    "MonthlyCharges": 29.85, "TotalCharges": 29.85
-  }'
-# {"churn_probability": 0.827, "predicted_class": "Yes"}
-```
-
-`GET /health` returns `{"status": "ok"}`. Interactive API docs (Swagger UI) are
-available at `/docs` on the live endpoint.
-
-Note: the free Render tier spins the service down after 15 minutes of
-inactivity, so the first request after a period of idleness can take up to
-~50 seconds while it wakes up.
+trained as a single `sklearn.Pipeline`, joblib-serialized to `model.joblib`
+along with its version string, and loaded once at API startup — so the API
+can never drift from what was actually trained. `POST /predict` validates
+the request against a Pydantic model built from the same column list the
+pipeline was trained on (`app/features.py`); a malformed request gets a 422
+with a clear message instead of a silent bad prediction. `GET /health`
+returns `{"status": "ok"}`.
 
 ### Running it yourself
 
@@ -81,6 +86,17 @@ docker build -t churn-api .
 docker run -p 8000:8000 churn-api
 curl http://localhost:8000/health
 ```
+
+### Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+Covers: a known input returns a probability in `[0, 1]`, a missing field
+returns 422, `/health` returns 200, and the request schema hasn't drifted
+from the training column list.
 
 ## Potential next steps
 

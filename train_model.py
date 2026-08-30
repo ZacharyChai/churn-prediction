@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from app.features import CATEGORICAL_COLS, RAW_FEATURE_COLUMNS, ChurnFeatureEngineer
+from app.features import CATEGORICAL_COLS, MODEL_VERSION, RAW_FEATURE_COLUMNS, ChurnFeatureEngineer
 
 
 def build_pipeline():
@@ -52,8 +52,11 @@ def main():
     proba = pipeline.predict_proba(X_test)[:, 1]
     print(f"Holdout AUC: {roc_auc_score(y_test, proba):.4f}")
 
-    joblib.dump(pipeline, "model.joblib")
-    print("Saved model.joblib")
+    # Bundle the version alongside the fitted pipeline so the API always
+    # reports the version of the artifact it actually loaded, not whatever
+    # a constant elsewhere in the code happens to say.
+    joblib.dump({"pipeline": pipeline, "version": MODEL_VERSION}, "model.joblib")
+    print(f"Saved model.joblib (version {MODEL_VERSION})")
 
 
 if __name__ == "__main__":

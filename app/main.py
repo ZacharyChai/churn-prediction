@@ -6,15 +6,20 @@ from typing import Literal
 import joblib
 import pandas as pd
 from fastapi import FastAPI, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.features import RAW_FEATURE_COLUMNS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("churn-api")
 
 MODEL_PATH = Path(__file__).resolve().parent.parent / "model.joblib"
-model = joblib.load(MODEL_PATH)
+_bundle = joblib.load(MODEL_PATH)
+model = _bundle["pipeline"]
+MODEL_VERSION = _bundle["version"]
 
-app = FastAPI(title="Churn Prediction API")
+# Docs (Swagger UI) served at "/" instead of the FastAPI default "/docs".
+app = FastAPI(title="Churn Prediction API", docs_url="/")
 
 
 @app.middleware("http")
@@ -53,8 +58,8 @@ class CustomerFeatures(BaseModel):
     MonthlyCharges: float = Field(ge=0)
     TotalCharges: float = Field(ge=0)
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "gender": "Female",
                 "SeniorCitizen": 0,
@@ -77,11 +82,24 @@ class CustomerFeatures(BaseModel):
                 "TotalCharges": 29.85,
             }
         }
+    )
+
+
+# CustomerFeatures must cover exactly the columns the pipeline was trained
+# on — no more, no less — or the API and the model would silently drift
+# apart. Fail fast at import time rather than on the first bad prediction.
+_schema_fields = set(CustomerFeatures.model_fields.keys())
+_training_fields = set(RAW_FEATURE_COLUMNS)
+assert _schema_fields == _training_fields, (
+    f"CustomerFeatures has drifted from the training schema: "
+    f"missing={_training_fields - _schema_fields} extra={_schema_fields - _training_fields}"
+)
 
 
 class ChurnPrediction(BaseModel):
     churn_probability: float
     predicted_class: Literal["Yes", "No"]
+    model_version: str
 
 
 @app.get("/health")
@@ -94,4 +112,8 @@ def predict(customer: CustomerFeatures):
     row = pd.DataFrame([customer.model_dump()])
     probability = float(model.predict_proba(row)[0, 1])
     predicted_class = "Yes" if probability >= 0.5 else "No"
-    return ChurnPrediction(churn_probability=probability, predicted_class=predicted_class)
+    return ChurnPrediction(
+        churn_probability=probability,
+        predicted_class=predicted_class,
+        model_version=MODEL_VERSION,
+    )
