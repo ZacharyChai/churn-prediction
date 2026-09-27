@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Literal
@@ -17,6 +18,20 @@ MODEL_PATH = Path(__file__).resolve().parent.parent / "model.joblib"
 _bundle = joblib.load(MODEL_PATH)
 model = _bundle["pipeline"]
 MODEL_VERSION = _bundle["version"]
+
+
+def _decision_threshold():
+    # The threshold chosen at training time travels inside model.joblib (see
+    # train_model.py). CHURN_THRESHOLD overrides it without retraining, for a
+    # deployment whose retention costs differ from the default.
+    raw = os.environ.get("CHURN_THRESHOLD")
+    value = float(raw) if raw is not None else float(_bundle.get("threshold", 0.5))
+    if not 0.0 < value < 1.0:
+        raise ValueError(f"Decision threshold must be between 0 and 1, got {value}")
+    return value
+
+
+DECISION_THRESHOLD = _decision_threshold()
 
 # Docs (Swagger UI) served at "/" instead of the FastAPI default "/docs".
 app = FastAPI(title="Churn Prediction API", docs_url="/")
@@ -86,7 +101,7 @@ class CustomerFeatures(BaseModel):
 
 
 # CustomerFeatures must cover exactly the columns the pipeline was trained
-# on — no more, no less — or the API and the model would silently drift
+# on (no more, no less), or the API and the model would silently drift
 # apart. Fail fast at import time rather than on the first bad prediction.
 _schema_fields = set(CustomerFeatures.model_fields.keys())
 _training_fields = set(RAW_FEATURE_COLUMNS)
@@ -99,6 +114,7 @@ assert _schema_fields == _training_fields, (
 class ChurnPrediction(BaseModel):
     churn_probability: float
     predicted_class: Literal["Yes", "No"]
+    decision_threshold: float
     model_version: str
 
 
@@ -111,9 +127,10 @@ def health():
 def predict(customer: CustomerFeatures):
     row = pd.DataFrame([customer.model_dump()])
     probability = float(model.predict_proba(row)[0, 1])
-    predicted_class = "Yes" if probability >= 0.5 else "No"
+    predicted_class = "Yes" if probability >= DECISION_THRESHOLD else "No"
     return ChurnPrediction(
         churn_probability=probability,
         predicted_class=predicted_class,
+        decision_threshold=DECISION_THRESHOLD,
         model_version=MODEL_VERSION,
     )

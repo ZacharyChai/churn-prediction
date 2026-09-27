@@ -44,3 +44,10 @@ def test_schema_matches_training_columns():
     # Guards against the API's request schema silently drifting from the
     # columns the model was actually trained on.
     assert set(CustomerFeatures.model_fields.keys()) == set(RAW_FEATURE_COLUMNS)
+
+
+def test_predicted_class_follows_the_served_threshold():
+    body = client.post("/predict", json=VALID_PAYLOAD).json()
+    assert 0.0 < body["decision_threshold"] < 1.0
+    expected = "Yes" if body["churn_probability"] >= body["decision_threshold"] else "No"
+    assert body["predicted_class"] == expected

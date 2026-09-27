@@ -1,5 +1,5 @@
 # Feature engineering shared by train_model.py (fits the pipeline) and the
-# API (unpickles it) — must stay importable at this same module path in both
+# API (unpickles it). It must stay importable at this same module path in both
 # places, since joblib/pickle resolves classes by module + name.
 
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -7,7 +7,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 # Bump when the training pipeline or feature set changes. Baked into
 # model.joblib at train time and echoed back in every /predict response,
 # so a caller can tell which model version scored their request.
-MODEL_VERSION = "1.0.0"
+MODEL_VERSION = "1.1.0"
 
 YES_NO_COLS = ["Partner", "Dependents", "PhoneService", "PaperlessBilling"]
 ADDON_COLS = [
