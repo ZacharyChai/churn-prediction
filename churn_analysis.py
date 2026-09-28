@@ -1,5 +1,5 @@
 # Customer Churn Prediction
-# Telco Customer Churn dataset — IBM/Kaggle
+# Telco Customer Churn dataset: IBM/Kaggle
 # https://www.kaggle.com/datasets/blastchar/telco-customer-churn
 
 import pandas as pd
@@ -25,7 +25,7 @@ print(df.dtypes)
 # TotalCharges should be numeric but has some blank strings for brand-new customers
 df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
 print(f"\nNulls in TotalCharges: {df['TotalCharges'].isnull().sum()}")
-# 11 rows — all have tenure=0, fill with median
+# 11 rows: all have tenure=0, fill with median
 df['TotalCharges'] = df['TotalCharges'].fillna(df['TotalCharges'].median())
 
 df = df.drop('customerID', axis=1)
@@ -38,9 +38,9 @@ df = df.drop('customerID', axis=1)
 print("\nChurn counts:")
 print(df['Churn'].value_counts())
 print(df['Churn'].value_counts(normalize=True).round(3))
-# ~26.5% churn — imbalanced but workable
+# ~26.5% churn: imbalanced but workable
 
-# Churn by contract type — stands out right away
+# Churn by contract type: stands out right away
 print("\nChurn rate by contract:")
 print(df.groupby('Contract')['Churn'].apply(lambda x: (x=='Yes').mean()).round(3))
 
@@ -92,7 +92,7 @@ yes_no_cols = ['Partner', 'Dependents', 'PhoneService', 'PaperlessBilling', 'Chu
 for col in yes_no_cols:
     df_model[col] = (df_model[col] == 'Yes').astype(int)
 
-# Add-on services — some say 'No phone service', treating as No (0)
+# Add-on services: some say 'No phone service', treating as No (0)
 addon_cols = ['MultipleLines', 'OnlineSecurity', 'OnlineBackup',
               'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies']
 for col in addon_cols:
@@ -109,7 +109,7 @@ df_model = pd.get_dummies(df_model,
 # Customers paying a lot relative to tenure = not yet getting value = higher churn risk
 df_model['charges_per_tenure'] = df_model['MonthlyCharges'] / (df_model['tenure'] + 1)
 
-# Count of add-on services — more services = more switching cost = lower churn
+# Count of add-on services: more services = more switching cost = lower churn
 df_model['num_services'] = df_model[addon_cols].sum(axis=1)
 
 print(f"\nFeature matrix: {df_model.shape}")
@@ -135,7 +135,7 @@ print(f"Test churn rate:  {y_test.mean():.2%}")
 # 5. Logistic regression (baseline)
 # ------------------------------------------------------------
 
-# Scale features — logistic regression is sensitive to feature magnitude
+# Scale features: logistic regression is sensitive to feature magnitude
 scaler = StandardScaler()
 X_train_sc = scaler.fit_transform(X_train)
 X_test_sc  = scaler.transform(X_test)  # transform only, never fit on test data
@@ -155,7 +155,7 @@ print(f"AUC: {roc_auc_score(y_test, lr_proba):.4f}")
 # 6. Random forest
 # ------------------------------------------------------------
 
-# Random forest — doesn't need scaling, handles non-linear relationships,
+# Random forest: doesn't need scaling, handles non-linear relationships,
 # and gives us feature importances to understand what's driving churn
 rf = RandomForestClassifier(
     n_estimators=100,
@@ -190,7 +190,7 @@ axes[0].set_xlabel('False Positive Rate')
 axes[0].set_ylabel('True Positive Rate')
 axes[0].legend()
 
-# Confusion matrix — using LR since it has better AUC
+# Confusion matrix: using LR since it has better AUC
 cm = confusion_matrix(y_test, lr_preds)
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=axes[1],
             xticklabels=['No Churn','Churn'],
