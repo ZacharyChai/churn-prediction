@@ -135,3 +135,9 @@ threshold. The threshold selection itself is unit-tested on synthetic data.
 
 - Try XGBoost to see if there's meaningful performance headroom
 - Add SHAP values for per-customer explanations
+
+## Also in this repo
+
+`orb_bot/` is a separate project: an Opening Range Breakout day-trading bot
+for ES / MES futures with a backtester and an Interactive Brokers runner. See
+[orb_bot/README.md](orb_bot/README.md). It is not part of the churn API image.
