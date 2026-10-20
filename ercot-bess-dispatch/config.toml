@@ -1,0 +1,47 @@
+# Single source of truth for every parameter. Nothing else in the repo hardcodes these.
+
+[asset]
+power_mw = 100.0
+energy_mwh = 200.0
+round_trip_efficiency = 0.85      # split evenly: sqrt(0.85) charge, sqrt(0.85) discharge
+soc_min_frac = 0.05
+soc_max_frac = 0.95
+soc_start_frac = 0.50             # each day starts and ends here, so days are independent
+cycles_per_day = 1.0              # throughput cap: cycles * energy_mwh discharged per day
+degradation_usd_per_mwh = 0.0
+
+# Each scenario overrides the base asset. "base" always runs.
+[[scenario]]
+name = "base"
+
+[[scenario]]
+name = "cycles_1.5"
+cycles_per_day = 1.5
+
+[[scenario]]
+name = "cycles_2"
+cycles_per_day = 2.0
+
+[[scenario]]
+name = "degradation_10"
+degradation_usd_per_mwh = 10.0
+
+[data]
+start_date = 2023-01-01
+hubs = ["HB_WEST", "HB_HOUSTON"]
+primary_hub = "HB_WEST"
+timezone = "America/Chicago"
+raw_dir = "data/raw"
+db_path = "data/ercot.duckdb"
+results_dir = "results"
+
+[solver]
+# If more than this share of intervals charge and discharge at once, re-solve as a MILP.
+simultaneity_threshold = 0.01
+simultaneity_tolerance_mw = 1e-6
+workers = 4
+
+[study]
+# Pre-registered before any results were seen (see README).
+rtcb_go_live = 2025-12-05
+placebo_breaks = [2024-12-05, 2023-12-05]
